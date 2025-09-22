@@ -33,6 +33,7 @@ add_executable(gimbal-dartt-controller
 target_link_libraries(gimbal-dartt-controller
     PRIVATE
     dartt_protocol
+    dartt_checksum
     serial
 )
 

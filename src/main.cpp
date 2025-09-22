@@ -1,5 +1,7 @@
 #include "serial.h"
+extern "C" {
 #include "dartt.h"
+}
 
 
 int main()
