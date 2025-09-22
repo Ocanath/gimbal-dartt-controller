@@ -1,7 +1,5 @@
 #include "serial.h"
-extern "C" {
 #include "dartt.h"
-}
 
 
 int main()
@@ -30,6 +28,8 @@ int main()
     if(serial.autoconnect(2000000))
     {
         printf("Connection success\n");
+		serial.write(uart_tx.buf, uart_tx.len);
+		uart_tx.len = 0;
         return 0;
     }
     else
