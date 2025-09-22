@@ -7,7 +7,7 @@ int main()
 {
     Serial serial;
 
-    unsigned char write_mem[24] = {1,2,3};
+    unsigned char write_mem[24] = {3,4,5,6,7};
     misc_write_message_t wmsg = 
     {
         .address = 3,
@@ -15,7 +15,7 @@ int main()
         .payload = {
             .buf = write_mem,
             .size = sizeof(write_mem),
-            .len = 3
+            .len = 5
         }        
     };
     unsigned char uart_tx_buf[128] = {};
@@ -45,8 +45,10 @@ int main()
         printf("Connection success\n");
         char kill_str[128];
         for(int i = 0; i < sizeof(kill_str); i++)
+        {
             kill_str[i] = 'f';
-            serial.write((uint8_t*)kill_str, sizeof(kill_str));
+        }   
+        serial.write((uint8_t*)kill_str, sizeof(kill_str));
         const char str[] = "garbage garbage\n";
         serial.write((uint8_t*)str, sizeof(str)-1);
         
