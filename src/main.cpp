@@ -43,7 +43,16 @@ int main()
     if(serial.autoconnect(2000000))
     {
         printf("Connection success\n");
-		serial.write(uart_tx.buf, (int)uart_tx.len);
+        char kill_str[128];
+        for(int i = 0; i < sizeof(kill_str); i++)
+            kill_str[i] = 'f';
+            serial.write((uint8_t*)kill_str, sizeof(kill_str));
+        const char str[] = "garbage garbage\n";
+        serial.write((uint8_t*)str, sizeof(str)-1);
+        
+        cobs_prepend_zero_single_buffer(&cobs_tx_buf);
+		serial.write(cobs_tx_buf.buf, (int)cobs_tx_buf.length);
+		
 		uart_tx.len = 0;
         return 0;
     }
