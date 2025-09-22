@@ -11,14 +11,14 @@ include(FetchContent)
 FetchContent_Declare(
     dartt-protocol
     GIT_REPOSITORY https://github.com/Ocanath/dartt-protocol.git
-    GIT_TAG main  # or specify a specific tag/commit
+    GIT_TAG master  # or specify a specific tag/commit
 )
 
 # Fetch serial-cross-platform library
 FetchContent_Declare(
     serial-cross-platform
     GIT_REPOSITORY https://github.com/Ocanath/serial-cross-platform.git
-    GIT_TAG main  # or specify a specific tag/commit
+    GIT_TAG master  # or specify a specific tag/commit
 )
 
 # Make the libraries available
