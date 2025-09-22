@@ -54,7 +54,18 @@ int main()
         
         cobs_prepend_zero_single_buffer(&cobs_tx_buf);
 		serial.write(cobs_tx_buf.buf, (int)cobs_tx_buf.length);
-		
+
+        // cobs_tx_buf.encoded_state = COBS_DECODED;
+        // cobs_tx_buf.buf[0] = 'h';
+        // cobs_tx_buf.buf[1] = 'e';
+        // cobs_tx_buf.buf[2] = 'l';
+        // cobs_tx_buf.buf[3] = 'l';
+        // cobs_tx_buf.buf[4] = 'o';
+        // cobs_tx_buf.length = 5;
+        // rc = cobs_encode_single_buffer(&cobs_tx_buf);
+        // serial.write(cobs_tx_buf.buf, (int)cobs_tx_buf.length);
+
+
 		uart_tx.len = 0;
         return 0;
     }
