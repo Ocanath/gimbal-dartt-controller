@@ -21,8 +21,14 @@ FetchContent_Declare(
     GIT_TAG master  # or specify a specific tag/commit
 )
 
+FetchContent_Declare(
+    byte_stuffing
+    GIT_REPOSITORY https://github.com/Ocanath/byte-stuffing.git
+    GIT_TAG        master 
+)
+
 # Make the libraries available
-FetchContent_MakeAvailable(dartt_protocol serial)
+FetchContent_MakeAvailable(dartt_protocol serial byte_stuffing)
 
 # Create the main executable
 add_executable(gimbal-dartt-controller
@@ -35,6 +41,8 @@ target_link_libraries(gimbal-dartt-controller
     dartt_protocol
     dartt_checksum
     serial
+    cobs 
+    PPP
 )
 
 # Include directories (if needed, depending on how the libraries expose their headers)
