@@ -25,7 +25,7 @@ int main()
     };
     int rc = dartt_create_write_frame(&wmsg, TYPE_SERIAL_MESSAGE, &uart_tx);
 
-    if(serial.autoconnect())
+    if(serial.autoconnect(2000000))
     {
         printf("Connection success\n");
         return 0;
