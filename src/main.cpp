@@ -8,7 +8,7 @@ int main()
 {
     Serial serial;
 
-    unsigned char write_mem[24] = {};
+    unsigned char write_mem[24] = {1,2,3};
     misc_write_message_t wmsg = 
     {
         .address = 3,
@@ -16,7 +16,7 @@ int main()
         .payload = {
             .buf = write_mem,
             .size = sizeof(write_mem),
-            .len = 0
+            .len = 3
         }        
     };
     unsigned char uart_tx_buf[128] = {};
