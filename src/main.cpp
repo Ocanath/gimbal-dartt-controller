@@ -4,6 +4,7 @@
 #include "cobs.h"
 #include "dartt_controller_params.h"
 #include <SDL.h>
+#include <chrono>
 
 Serial serial;
 unsigned char tx_mem[64] = {};
@@ -43,10 +44,12 @@ int rx_blocking(unsigned char addr, buffer_t * buf, uint32_t timeout)
 	{
 		.buf = rx_cobs_mem,
 		.size = sizeof(rx_cobs_mem),
-		.length = buf->len
+		.length = 0
 	};
 
-    int rc = serial.read(cb_enc.buf, cb_enc.size);	//implement our own cobs blocking read, similar to hdlc/ppp ~ check
+    // int rc = serial.read(cb_enc.buf, cb_enc.size);	//implement our own cobs blocking read, similar to hdlc/ppp ~ check
+    int rc = serial.read_until_delimiter(cb_enc.buf, cb_enc.size, 0, timeout);
+
 	if (rc >= 0)
 	{
 		buf->len = rc;
@@ -101,7 +104,7 @@ int main(int argc, char* args[])
         },
         .blocking_tx_callback = &tx_blocking,
         .blocking_rx_callback = &rx_blocking,
-        .timeout_ms = 0
+        .timeout_ms = 10
     };
 
     if(serial.autoconnect(2000000))
@@ -119,6 +122,8 @@ int main(int argc, char* args[])
             .len = sizeof(ctl_periph)
         };
 
+		ctl_alias.buf = (unsigned char *) ( & ctl_dp.fds.dartt_address);
+		ctl_alias.size = sizeof(ctl_dp) - (ctl_alias.buf - (unsigned char*)(&ctl_dp));
 		ctl_alias.len = 4;	//read only the first 4 bytes
         int rc = dartt_ctl_read(&ctl_alias, &periph_alias, &ds);
         if(rc != DARTT_PROTOCOL_SUCCESS)
@@ -127,7 +132,7 @@ int main(int argc, char* args[])
         }
         else
         {
-            printf("Read data success. %d\n", ctl_periph.m1_qd);
+            printf("Read data success. %d\n", ctl_periph.fds.dartt_address);
         }
 		return rc;
     }
