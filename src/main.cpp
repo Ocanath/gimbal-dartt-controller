@@ -76,7 +76,7 @@ int rx_blocking(unsigned char addr, buffer_t * buf, uint32_t timeout)
 }
 
 
-int main()
+int main(int argc, char* args[])
 {
     dartt_sync_t ds = 
     {

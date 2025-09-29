@@ -50,8 +50,8 @@ target_link_libraries(gimbal-dartt-controller
     serial
     cobs
     PPP
-    SDL2::SDL2
-    SDL2::SDL2main
+    SDL2-static
+    SDL2main
 )
 
 # Include directories (if needed, depending on how the libraries expose their headers)
