@@ -6,20 +6,72 @@
 
 Serial serial;
 unsigned char tx_mem[64] = {};
-unsigned char rx_mem[64] = {};
+unsigned char rx_dartt_mem[64] = {};
+unsigned char rx_cobs_mem[64] = {};
 dartt_controller_params_t ctl_dp = {};
 dartt_controller_params_t ctl_periph = {};
 
 
 int tx_blocking(unsigned char addr, buffer_t * b, uint32_t timeout)
 {
-    serial.write(b->buf, b->len);
-    return DARTT_PROTOCOL_SUCCESS;
+	cobs_buf_t cb = {
+		.buf = b->buf,
+		.size = b->size,
+		.length = b->len,
+		.encoded_state = COBS_DECODED
+	};
+	int rc = cobs_encode_single_buffer(&cb);
+	if (rc != 0)
+	{
+		return rc;
+	}
+    rc = serial.write(cb.buf, (int)cb.length);
+	if(rc == cb.length)
+	{
+		return DARTT_PROTOCOL_SUCCESS;
+	}
+	else
+	{
+		return -1;
+	}
 }
+
 int rx_blocking(unsigned char addr, buffer_t * buf, uint32_t timeout)
 {
-    serial.read(buf->buf, buf->size);
-    return DARTT_PROTOCOL_SUCCESS;
+	cobs_buf_t cb_enc =
+	{
+		.buf = rx_cobs_mem,
+		.size = sizeof(rx_cobs_mem),
+		.length = buf->len
+	};
+
+    int rc = serial.read(cb_enc.buf, cb_enc.size);	//implement our own cobs blocking read, similar to hdlc/ppp ~ check
+	if (rc >= 0)
+	{
+		buf->len = rc;
+		cb_enc.length = buf->len;
+	}
+	else
+	{
+		return -1;
+	}
+
+	cobs_buf_t cb_dec =
+	{
+		.buf = buf->buf,
+		.size = buf->size,
+		.length = 0
+	};
+	rc = cobs_decode_double_buffer(&cb_enc, &cb_dec);
+	if (rc != COBS_SUCCESS)
+	{
+		return rc;
+	}
+	else
+	{
+		return DARTT_PROTOCOL_SUCCESS;
+	}
+    
 }
 
 
@@ -27,7 +79,7 @@ int main()
 {
     dartt_sync_t ds = 
     {
-        .address = 0,
+        .address = 3,
         .base = 
         {
             .buf = (unsigned char *)(&ctl_dp),
@@ -42,12 +94,12 @@ int main()
             .len = 0
         },
         .rx_buf = {
-            .buf = rx_mem,
-            .size = sizeof(rx_mem),
-            .len = sizeof(rx_mem)
+            .buf = rx_dartt_mem,
+            .size = sizeof(rx_dartt_mem),
+            .len = 0
         },
-        .blocking_tx_callback = &rx_blocking,
-        .blocking_rx_callback = &tx_blocking,
+        .blocking_tx_callback = &tx_blocking,
+        .blocking_rx_callback = &rx_blocking,
         .timeout_ms = 0
     };
 
@@ -66,7 +118,9 @@ int main()
             .len = sizeof(ctl_periph)
         };
 
+		ctl_alias.len = 4;	//read only the first 4 bytes
         int rc = dartt_ctl_read(&ctl_alias, &periph_alias, &ds);
+		return rc;
     }
     else
     {
