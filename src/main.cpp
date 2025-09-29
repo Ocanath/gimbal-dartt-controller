@@ -121,6 +121,14 @@ int main(int argc, char* args[])
 
 		ctl_alias.len = 4;	//read only the first 4 bytes
         int rc = dartt_ctl_read(&ctl_alias, &periph_alias, &ds);
+        if(rc != DARTT_PROTOCOL_SUCCESS)
+        {
+            printf("Failed to get read data\n");
+        }
+        else
+        {
+            printf("Read data success. %d\n", ctl_periph.m1_qd);
+        }
 		return rc;
     }
     else
