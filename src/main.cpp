@@ -44,7 +44,7 @@ int main()
         .rx_buf = {
             .buf = rx_mem,
             .size = sizeof(rx_mem),
-            .len = 0
+            .len = sizeof(rx_mem)
         },
         .blocking_tx_callback = &rx_blocking,
         .blocking_rx_callback = &tx_blocking,
