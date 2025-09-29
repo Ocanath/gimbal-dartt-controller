@@ -3,6 +3,7 @@
 #include "dartt_sync.h"
 #include "cobs.h"
 #include "dartt_controller_params.h"
+#include <SDL.h>
 
 Serial serial;
 unsigned char tx_mem[64] = {};

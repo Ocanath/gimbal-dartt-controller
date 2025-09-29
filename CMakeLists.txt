@@ -24,11 +24,18 @@ FetchContent_Declare(
 FetchContent_Declare(
     byte_stuffing
     GIT_REPOSITORY https://github.com/Ocanath/byte-stuffing.git
-    GIT_TAG        master 
+    GIT_TAG        master
+)
+
+# Fetch SDL2 library
+FetchContent_Declare(
+    SDL2
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-2.32.10  # Use a stable release tag
 )
 
 # Make the libraries available
-FetchContent_MakeAvailable(dartt_protocol serial byte_stuffing)
+FetchContent_MakeAvailable(dartt_protocol serial byte_stuffing SDL2)
 
 # Create the main executable
 add_executable(gimbal-dartt-controller
@@ -41,8 +48,10 @@ target_link_libraries(gimbal-dartt-controller
     dartt_protocol
     dartt_checksum
     serial
-    cobs 
+    cobs
     PPP
+    SDL2::SDL2
+    SDL2::SDL2main
 )
 
 # Include directories (if needed, depending on how the libraries expose their headers)
