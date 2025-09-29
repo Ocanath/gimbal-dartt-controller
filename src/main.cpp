@@ -94,12 +94,12 @@ int main(int argc, char* args[])
         .tx_buf = 
         {
             .buf = tx_mem,
-            .size = sizeof(tx_mem),
+            .size = sizeof(tx_mem) - 2,	//leave two bytes for cobs
             .len = 0
         },
         .rx_buf = {
             .buf = rx_dartt_mem,
-            .size = sizeof(rx_dartt_mem),
+            .size = sizeof(rx_dartt_mem) - 2,	//leave two bytes for cobs
             .len = 0
         },
         .blocking_tx_callback = &tx_blocking,
@@ -122,17 +122,23 @@ int main(int argc, char* args[])
             .len = sizeof(ctl_periph)
         };
 
-		ctl_alias.buf = (unsigned char *) ( & ctl_dp.fds.dartt_address);
-		ctl_alias.size = sizeof(ctl_dp) - (ctl_alias.buf - (unsigned char*)(&ctl_dp));
-		ctl_alias.len = 4;	//read only the first 4 bytes
-        int rc = dartt_ctl_read(&ctl_alias, &periph_alias, &ds);
+		// ctl_alias.buf = (unsigned char *) ( & ctl_dp.fds.dartt_address);
+		// ctl_alias.size = sizeof(ctl_dp) - (ctl_alias.buf - (unsigned char*)(&ctl_dp));
+		// ctl_alias.len = 4;	//read only the first 4 bytes
+        // int rc = dartt_ctl_read(&ctl_alias, &periph_alias, &ds);
+        int rc = dartt_read_multi(&ctl_alias, &periph_alias, &ds);
         if(rc != DARTT_PROTOCOL_SUCCESS)
         {
             printf("Failed to get read data\n");
         }
         else
         {
-            printf("Read data success. %d\n", ctl_periph.fds.dartt_address);
+            printf("Read data success.\n");
+			for (int i = 0; i < sizeof(dartt_controller_params_t); i += sizeof(int32_t))
+			{
+				int32_t* pi32 = (int32_t*)(&periph_alias.buf[i]);
+				printf("W%d = %d\n", i / sizeof(int32_t), *pi32);
+			}
         }
 		return rc;
     }
