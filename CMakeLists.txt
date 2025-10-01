@@ -41,6 +41,8 @@ FetchContent_MakeAvailable(dartt_protocol serial byte_stuffing SDL2)
 add_executable(gimbal-dartt-controller
     src/main.cpp
 	src/dartt_init.cpp
+	src/sauron-eye-closedform-ik.cpp
+	src/trig_fixed.cpp
 )
 
 # Link the libraries to the executable
