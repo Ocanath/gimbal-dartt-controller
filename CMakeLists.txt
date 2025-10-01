@@ -40,6 +40,7 @@ FetchContent_MakeAvailable(dartt_protocol serial byte_stuffing SDL2)
 # Create the main executable
 add_executable(gimbal-dartt-controller
     src/main.cpp
+	src/dartt_init.cpp
 )
 
 # Link the libraries to the executable
