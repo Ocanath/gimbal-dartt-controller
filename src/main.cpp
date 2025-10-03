@@ -219,6 +219,8 @@ int main(int argc, char* args[])
             if(shoot)
             {
                 printf("POW\n");
+                ctl_dp.gun_ctl.shot_request = 1;
+                dartt_ctl_write(&trigger_alias, &ds);
                 shoot = 0;
             }
             dartt_ctl_write(&theta_targets_alias, &ds); //write out targets
