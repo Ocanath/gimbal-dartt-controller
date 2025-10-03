@@ -130,6 +130,8 @@ int main(int argc, char* args[])
 	uint64_t throttle_stop_ts = 0;
 	double targx = 0;
 	double targy = 0;
+    uint32_t prev_bts = 0;
+    uint8_t shoot = 0;
 	while (quit == false) 
 	{
 		uint64_t tick = SDL_GetTicks64() - start_tick;
@@ -154,6 +156,7 @@ int main(int argc, char* args[])
 
 		int mouse_x, mouse_y;
 		uint32_t bts = SDL_GetMouseState(&mouse_x, &mouse_y);
+        
 		int32_t gain_x = 1;
 		int32_t gain_y = -1;
 		int32_t deltax = (mouse_x - prev_mouse_x)* gain_x;
@@ -174,16 +177,21 @@ int main(int argc, char* args[])
 
 		double vx = kbvx;
 		double vy = kbvy;
-		if (bts == 4)	//right mouse button
+        if(((bts & SDL_BUTTON_LMASK) != 0) && ((prev_bts & SDL_BUTTON_LMASK) == 0))
+        {
+            shoot = 1;
+        }
+		if (bts & SDL_BUTTON_RMASK)	//right mouse button
 		{
 			vx = targx;
 			vy = targy;
 		}
-		if (bts == 2)	//center mouse button
+		else if (bts & SDL_BUTTON_MMASK)	//center mouse button
 		{
 			targx = vx;
 			targy = vy;
 		}
+        prev_bts = bts;
         //note - mouse button state is handled with a bitmask
 		
 		//manually rotate the target frame by 45 degrees Z so it's aligned to the base, which we've also rotated by 45 degrees.
@@ -208,7 +216,11 @@ int main(int argc, char* args[])
 		if (tick - udp_tx_ts > 10)
 		{
 			udp_tx_ts = tick;
-
+            if(shoot)
+            {
+                printf("POW\n");
+                shoot = 0;
+            }
             dartt_ctl_write(&theta_targets_alias, &ds); //write out targets
 		}
 	}
