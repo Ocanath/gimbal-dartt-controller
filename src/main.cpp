@@ -1,6 +1,7 @@
 #include "dartt_init.h"
 #include "sauron-eye-closedform-ik.h"
 #include "trig_fixed.h"
+#include "checksum.h"
 #include <SDL.h>
 #include <chrono>
 
@@ -22,13 +23,27 @@ int main(int argc, char* args[])
 	}
 	else
 	{
-		printf("Read data success.\n");
+		printf("Read data success.\n");        
 		for (int i = 0; i < sizeof(dartt_controller_params_t); i += sizeof(int32_t))
 		{
 			int32_t* pi32 = (int32_t*)(&periph_alias_full.buf[i]);
 			printf("W%d = %d\n", i / sizeof(int32_t), *pi32);
 		}
 	}
+    uint16_t crc = get_crc16(periph_alias_full.buf, periph_alias_full.size);
+    for(int i = 0; i < periph_alias_full.size; i++)
+    {
+        periph_alias_full.buf[i] = 0;
+    }
+    rc = dartt_read_multi(&ctl_alias_full, &periph_alias_full, &ds);
+    uint16_t crc2 = get_crc16(periph_alias_full.buf, periph_alias_full.size);
+    if(crc != crc2)
+    {
+        printf("Double read checksum mismatch\n");
+        return -1;
+    }
+
+    
 
 	SDL_Window* window = NULL;
 	SDL_Color bgColor = { 10, 10, 10, 255 };
