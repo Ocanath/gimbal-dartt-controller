@@ -4,7 +4,7 @@
 #include "checksum.h"
 #include <SDL.h>
 #include <chrono>
-
+#include "math.h"
 
 int main(int argc, char* args[])
 {
@@ -14,12 +14,13 @@ int main(int argc, char* args[])
         return -1;		
 	}
 
+    int num_read_errors = 0;
 	//read the full dartt structure from the dartt target (in this case, the controller middleman over UART - which also uses DARTT to communicate with the motor controllers. The record contains a snapshot of the motor state as well.)
 	int rc = dartt_read_multi(&ctl_alias_full, &periph_alias_full, &ds);
 	if(rc != DARTT_PROTOCOL_SUCCESS)
 	{
 		printf("Failed to get read data\n");
-		return rc;
+		num_read_errors++;
 	}
 	else
 	{
@@ -27,7 +28,7 @@ int main(int argc, char* args[])
 		for (int i = 0; i < sizeof(dartt_controller_params_t); i += sizeof(int32_t))
 		{
 			int32_t* pi32 = (int32_t*)(&periph_alias_full.buf[i]);
-			printf("W%d = %d\n", i / sizeof(int32_t), *pi32);
+			printf("W%d = %d\n", (int)(i / sizeof(int32_t)), *pi32);
 		}
 	}
     uint16_t crc = get_crc16(periph_alias_full.buf, periph_alias_full.size);
@@ -36,14 +37,40 @@ int main(int argc, char* args[])
         periph_alias_full.buf[i] = 0;
     }
     rc = dartt_read_multi(&ctl_alias_full, &periph_alias_full, &ds);
-    uint16_t crc2 = get_crc16(periph_alias_full.buf, periph_alias_full.size);
-    if(crc != crc2)
+    if(rc != DARTT_PROTOCOL_SUCCESS)
     {
-        printf("Double read checksum mismatch\n");
-        return -1;
+        printf("Second Read Failed\n");
+        num_read_errors++;
     }
-
+    else
+    {
+        uint16_t crc2 = get_crc16(periph_alias_full.buf, periph_alias_full.size);
+        if(crc != crc2)
+        {
+            printf("Double read checksum mismatch\n");
+            num_read_errors++;
+        }
+    }
+    if(num_read_errors != 0)
+    {
+        printf("Warning! dartt not initialized properly, %d read errors\n",num_read_errors);
+    }
     
+
+    buffer_t theta_targets_alias = 
+    {
+        .buf = (unsigned char *)(&ctl_dp.m1_qd),
+        .size = 2 * sizeof(int32_t),
+        .len = 2 * sizeof(int32_t)
+    };
+    buffer_t trigger_alias = 
+    {
+        .buf = (unsigned char * )(&ctl_dp.gun_ctl.shot_request),
+        .size = sizeof(int32_t),
+        .len = sizeof(int32_t)
+    };
+
+
 
 	SDL_Window* window = NULL;
 	SDL_Color bgColor = { 10, 10, 10, 255 };
@@ -147,7 +174,7 @@ int main(int argc, char* args[])
 
 		double vx = kbvx;
 		double vy = kbvy;
-		if (bts == 1)	//left mouse button
+		if (bts == 4)	//right mouse button
 		{
 			vx = targx;
 			vy = targy;
@@ -157,6 +184,7 @@ int main(int argc, char* args[])
 			targx = vx;
 			targy = vy;
 		}
+        //note - mouse button state is handled with a bitmask
 		
 		//manually rotate the target frame by 45 degrees Z so it's aligned to the base, which we've also rotated by 45 degrees.
 		//the ik solution is expressed assuming that joint 1 is parallel to the x axis
@@ -164,12 +192,12 @@ int main(int argc, char* args[])
 		double vxr = vx * cos(rotangle) - vy * sin(rotangle);
 		double vyr = vx * sin(rotangle) + vy * cos(rotangle);
 		get_ik_angles_double(vxr, vyr, 10, &th1, &th2);
-		int32_t th1_i32 = (int32_t)(th1 * (float)PI_14B);
-		int32_t th2_i32 = (int32_t)(th2 * (float)PI_14B);
+		ctl_dp.m1_qd = (int32_t)(th1 * (float)PI_14B);
+		ctl_dp.m2_qd = (int32_t)(th2 * (float)PI_14B);
 
 		if ( (tick - print_ts) > 50)
 		{
-			printf("%f, %f, %d, %d, %d\n", vx, vy, th1_i32, th2_i32, bts);
+			printf("%f, %f, %d, %d, %d\n", vx, vy, ctl_dp.m1_qd, ctl_dp.m2_qd, bts);
 			print_ts = tick;
 		}
 
@@ -180,33 +208,14 @@ int main(int argc, char* args[])
 		if (tick - udp_tx_ts > 10)
 		{
 			udp_tx_ts = tick;
-			//TODO: replace this with dartt request transmission
 
-			// uint8_t pld[32] = { 0 };
-			// uint16_t* pu16 = (uint16_t*)(&pld[0]);
-			// int i = 0;
-			// pld[i++] = POSITION;
-			// pld[i++] = 0;
-
-			// int32_t* p_cmd32 = (int32_t*)(&pld[i]);
-			// p_cmd32[0] = th1_i32;
-			// i += sizeof(int32_t);
-			// p_cmd32[1] = th2_i32;
-			// i += sizeof(int32_t);
-
-			// int chkidx = (i + (i % 2)) / 2;	//pad a +1 byte if it's odd, divide by 2, set that as the start of our 16bit checksum
-			// pu16[chkidx] = fletchers_checksum16(pu16, chkidx);
-			// chkidx++;
-			// int pld_size = chkidx * sizeof(uint16_t);
-			// int stuffed_size = PPP_stuff(pld, pld_size, gl_ppp_stuffing_buffer, sizeof(gl_ppp_stuffing_buffer));
-			// //sendto(client.s, (const char*)gl_ppp_stuffing_buffer, stuffed_size, 0, (struct sockaddr*)&client.si_other, client.slen);
-			// serial_write(gl_ppp_stuffing_buffer, stuffed_size);
+            dartt_ctl_write(&theta_targets_alias, &ds); //write out targets
 		}
 	}
 
 
 
-
+    return 0;
 
 
 
