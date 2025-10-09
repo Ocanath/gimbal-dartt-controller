@@ -6,6 +6,58 @@
 #include <chrono>
 #include "math.h"
 
+int print_write_frame(buffer_t * ctl, dartt_sync_t * psync)
+{
+    assert(ctl != NULL && psync != NULL);
+    assert(ctl->buf != NULL && psync->base.buf != NULL && psync->blocking_tx_callback != NULL && psync->tx_buf.buf != NULL);
+
+    // Runtime checks for buffer bounds - these could be caused by developer error in ctl configuration
+    if (ctl->buf < psync->base.buf || ctl->buf >= (psync->base.buf + psync->base.size)) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    if (ctl->buf + ctl->len > psync->base.buf + psync->base.size) {
+        return ERROR_MEMORY_OVERRUN;
+    }
+    if (ctl->buf + ctl->size > psync->base.buf + psync->base.size) {
+        return ERROR_MEMORY_OVERRUN;
+    }
+
+    int field_index = index_of_field( (void*)(&ctl->buf[0]), (void*)(&psync->base.buf[0]), psync->base.size );
+    if(field_index < 0)
+    {
+        return field_index; //negative values are error codes, return if you get negative value
+    }
+    unsigned char misc_address = dartt_get_complementary_address(psync->address);
+    //write then read the word in question
+    misc_write_message_t write_msg =
+    {
+            .address = misc_address,
+            .index = (uint16_t)field_index,
+            .payload = {
+                    .buf = ctl->buf,
+                    .size = ctl->size,
+                    .len = ctl->len
+            }
+    };
+    int rc = dartt_create_write_frame(&write_msg, psync->msg_type, &psync->tx_buf);
+    if(rc != DARTT_PROTOCOL_SUCCESS)
+    {
+        return rc;
+    }
+    printf("----\nController Write Frame: \n");
+    printf("Address: 0x%0.2X\n", write_msg.address);
+    printf("Index: 0x%0.2X\n", write_msg.index);
+    printf("Payload Length: %d\n", write_msg.payload.len);
+    printf("Full Message (bytes): 0x");
+    for(int i = 0; i < psync->tx_buf.len; i++)
+    {
+        printf("%0.2X",psync->tx_buf.buf[i]);
+    }
+    printf("\n");
+}
+
+
+
 int main(int argc, char* args[])
 {
 	if(!serial.autoconnect(2000000))
@@ -69,6 +121,8 @@ int main(int argc, char* args[])
         .size = sizeof(int32_t),
         .len = sizeof(int32_t)
     };
+	print_write_frame(&theta_targets_alias, &ds);
+	print_write_frame(&trigger_alias, &ds);
 
 
 
@@ -220,7 +274,11 @@ int main(int argc, char* args[])
             {
                 printf("POW\n");
                 ctl_dp.gun_ctl.shot_request = 1;
-                dartt_ctl_write(&trigger_alias, &ds);
+                rc = dartt_ctl_write(&trigger_alias, &ds);
+				if(rc != DARTT_PROTOCOL_SUCCESS)
+				{
+					return -1;
+				}
                 shoot = 0;
             }
             dartt_ctl_write(&theta_targets_alias, &ds); //write out targets
